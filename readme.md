@@ -1,0 +1,1 @@
+An attempt to implement [particle lenia](https://google-research.github.io/self-organising-systems/particle-lenia/) in Rust using the [Bevy Engine](https://bevyengine.org/).
