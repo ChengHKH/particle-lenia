@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::f32::consts::TAU;
 
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 use rand::prelude::*;
@@ -50,8 +50,8 @@ fn spawn_creature(
         creature: Creature,
     }).with_children(|parent| {
         for _ in 0..200 {
-            let r = 150.0 * (rng.gen_range(0.0..=1.0) as f32).sqrt();
-            let theta = (rng.gen_range(0.0..=1.0) as f32) * 2.0 * PI;
+            let r = 150.0 * rng.gen::<f32>().sqrt();
+            let theta = rng.gen::<f32>() * TAU;
 
             parent.spawn(ParticleBundle {
                 materialmesh2d: MaterialMesh2dBundle {
