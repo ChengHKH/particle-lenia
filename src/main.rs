@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use std::{f32::consts::TAU, iter};
 
 use bevy::{prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}};
@@ -199,13 +201,13 @@ fn update_position(
 fn update_size(
     mut meshes: ResMut<Assets<Mesh>>,
     creature_query: Query<(&Parameters, &Children), With<Creature>>,
-    mut particle_query: Query<(&Mesh2dHandle, &Fields), With<Particle>>,
+    particle_query: Query<(&Mesh2dHandle, &Fields), With<Particle>>,
 ) {
     for (parameters, children) in creature_query.iter() {
         for child in children.iter() {
-            let (mesh2dhandle, fields) = particle_query.get(*child).unwrap();
+            let (mesh, fields) = particle_query.get(*child).unwrap();
             let r = parameters.c_rep / (fields.R_val * 5.0);
-            let _ = meshes.set(&mesh2dhandle.0, shape::Circle::new(r).into());
+            let _ = meshes.set(&mesh.0, shape::Circle::new(r).into());
         }
     }
 }
