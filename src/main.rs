@@ -199,9 +199,9 @@ fn update_position(
     time: Res<Time>,
     mut particle_query: Query<(&mut Transform, &Fields), With<Particle>>,
 ) {
-    for (mut transform, fields) in particle_query.iter_mut() {
+    particle_query.par_iter_mut().for_each_mut(|(mut transform, fields)| {
         transform.translation += 0.1 * (-fields.E_grad);
-    }
+    });
 }
 
 fn update_size(
