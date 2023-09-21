@@ -81,6 +81,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, (setup, spawn_creature))
+        .add_systems(Update, reset_fields.before(calculate_fields))
         .add_systems(Update, (bevy::window::close_on_esc, calculate_fields))
         .add_systems(Update, (update_position, update_size).after(calculate_fields))
         .run();
@@ -138,22 +139,27 @@ fn radial_field(x: f32, mu: f32, sigma: f32, w: f32) -> (f32, f32) {
     (y, -2.0 * t * y / sigma)
 }
 
+fn reset_fields(
+    mut particle_query: Query<(&Parent, &mut Fields), With<Particle>>,
+    creature_query: Query<&Parameters, With<Creature>>,
+) {
+    particle_query.par_iter_mut().for_each_mut(|(parent, mut fields)| {
+        let parameters = creature_query.get(parent.get()).unwrap();
+        fields.R_val = repulsion_field(0.0, parameters.c_rep).0;
+        fields.R_grad = Vec3::ZERO;
+            
+        fields.U_val = radial_field(0.0, parameters.mu_k, parameters.sigma_k, parameters.w_k).0;
+        fields.U_grad = Vec3::ZERO;
+
+        fields.E_grad = Vec3::ZERO;
+    });
+}
+
 fn calculate_fields(
     creature_query: Query<(&Parameters, &Children), With<Creature>>,
     mut particle_query: Query<(&Transform, &mut Fields), With<Particle>>,
 ) {
     for (parameters, children) in creature_query.iter() {
-        for child in children.iter() {
-            let (_, mut fields) = particle_query.get_mut(*child).unwrap();
-            fields.R_val = repulsion_field(0.0, parameters.c_rep).0;
-            fields.R_grad = Vec3::ZERO;
-            
-            fields.U_val = radial_field(0.0, parameters.mu_k, parameters.sigma_k, parameters.w_k).0;
-            fields.U_grad = Vec3::ZERO;
-
-            fields.E_grad = Vec3::ZERO;
-        }
-
         for (child_i, child_j) in children.iter()
             .enumerate()
             .flat_map(|(index, child)| iter::zip(
