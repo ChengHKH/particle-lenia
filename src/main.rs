@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use std::{f32::consts::TAU, iter};
+use std::{f32::consts::{TAU, FRAC_PI_2}, iter, sync::{Arc, Mutex}};
 
 use bevy::{prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}};
 use rand::prelude::*;
@@ -110,7 +110,7 @@ fn spawn_creature(
         parameters: Parameters::default(),
         creature: Creature,
     }).with_children(|parent| {
-        for _ in 0..199 {
+        for _ in 0..499 {
             let r = 10.0 * rng.gen::<f32>().sqrt();
             let theta = rng.gen::<f32>() * TAU;
 
@@ -205,15 +205,24 @@ fn update_position(
 }
 
 fn update_size(
-    mut meshes: ResMut<Assets<Mesh>>,
-    creature_query: Query<(&Parameters, &Children), With<Creature>>,
-    particle_query: Query<(&Mesh2dHandle, &Fields), With<Particle>>,
+    meshes: ResMut<Assets<Mesh>>,
+    particle_query: Query<(&Parent, &mut Mesh2dHandle, &Fields), With<Particle>>,
+    creature_query: Query<&Parameters, With<Creature>>,
 ) {
-    for (parameters, children) in creature_query.iter() {
-        for child in children.iter() {
-            let (mesh, fields) = particle_query.get(*child).unwrap();
-            let r = parameters.c_rep / (fields.R_val * 5.0);
-            let _ = meshes.set(&mesh.0, shape::Circle::new(r).into());
+    let mutex = Arc::new(Mutex::new(meshes));
+    particle_query.par_iter().for_each(|(parent, mesh, fields)| {
+        let parameters = creature_query.get(parent.get()).unwrap();
+        let r = parameters.c_rep / (fields.R_val * 5.0);
+
+        let sides = 64;
+        let mut new_positions = Vec::with_capacity(sides);
+        let step = TAU / sides as f32;
+        for i in 0..sides {
+            let theta = FRAC_PI_2 - i as f32 * step;
+            let (sin, cos) = theta.sin_cos();
+            new_positions.push([cos * r, sin * r, 0.0]);
         }
-    }
+
+        mutex.lock().unwrap().get_mut(&mesh.0).unwrap().insert_attribute(Mesh::ATTRIBUTE_POSITION, new_positions);
+    });
 }
